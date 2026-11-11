@@ -1,112 +1,77 @@
-# Custom Homelab
+# HomeLab
 
-***A lightweight, high performance, Go backend powering some self-hosted tools***
+HomeLab is a self-hosted, API first, file service for a home network. The planned user release will run as a prebuilt executable, so users can start the service without working with the source code.
 
-## Features
--  **Current**:
-	- Authenticated chunked uploads to local filesystem storage
-- **Future**:
-	- PiDrop (like Airdrop but cross-platform)
-	- Media Streamer (like Netflix but self-hosted)
-	- Password Vault/Manager
-	- Ad Blocker
+## Current component: API
 
-## Functionality
+The API is the part available today. It can:
 
-### Current Functionality
-The app supports user registration, login with an HTTP-only session cookie, and authenticated chunked uploads. Uploaded chunks are assembled into files on the server's local filesystem under `STORAGE_PATH`. Uploads are not currently recorded in the database, and there is no download endpoint.
-### Future Functionality
-In the future it should have the rest of the features listed above plus redownloading the file from storage and test files that will have tutorials on how to be used.
+- Register accounts and sign users in.
+- Accept authenticated, chunked file uploads.
+- Store uploaded files on the host computer and record file and folder details, including file size.
 
-## Current Tests
-- Manually tested with a 1 GiB chunk. This is not a configured or verified maximum; the server currently has no explicit upload-size limit.
-## Known Limitations
-Uploads are not recorded in the database yet.
+The API has authenticated upload and download endpoints. A complete file-browsing website is not available yet, so clients need to communicate with the API directly.
 
-## Endpoint Testing And Call Reference
+## Planned component: Website
 
-| Method | Path        | Auth Required | Purpose                                       |
-| ------ | ----------- | ------------- | --------------------------------------------- |
-| GET    | `/`         | No            | Return the server welcome message             |
-| POST   | `/register` | No            | Create an account                             |
-| POST   | `/login`    | No            | Authenticate and set the session cookie       |
-| POST   | `/upload`   | Yes           | Upload chunks and assemble the completed file |
+A website for browsing and downloading stored files is planned. It is not available yet.
 
-`/upload` requires the session cookie set by `/login`, these headers, and the raw bytes for one chunk in the request body:
+## Deployment guide
 
-| Header           | Description                                  |
-| ---------------- | -------------------------------------------- |
-| `X-Filename`     | Name of the completed file                   |
-| `X-Target-Path`  | Directory below the user's storage directory |
-| `X-Chunk-Index`  | 1-based index of this chunk                  |
-| `X-Total-Chunks` | Total number of chunks in the upload         |
+The API listens on port `8080`. It needs two writable directories: `DB_PATH` for `homelab.db` and `STORAGE_PATH` for uploaded files. Keep these directories on persistent storage and back them up. Download the executable for your operating system and CPU from GitHub Releases using your browser. The commands below assume the file is in your Downloads folder. Release executables are not published yet.
 
-The server assembles the file when it receives the final indexed chunk and all expected chunk files are present.
+The server listens on all network interfaces. Use it on a trusted network, and allow port `8080` through the host firewall only for devices that should reach it. Do not expose it directly to the public internet.
 
-Example (repeat once per chunk, changing the index and request body):
+### Windows (PowerShell, x64)
 
-```http
-POST /upload HTTP/1.1
-Host: localhost:8080
-Cookie: session=SESSION_COOKIE_FROM_LOGIN
-X-Filename: archive.zip
-X-Target-Path: backups
-X-Chunk-Index: 1
-X-Total-Chunks: 2
-Content-Type: application/octet-stream
+Set the data folders permanently for your Windows user and create them:
 
-<raw chunk bytes>
-```
-#### Register Endpoint `/register`
-```Http Request
-POST /register HTTP/1.1
-Host: localhost:8080
-Content-Type: application/json
-
-{"Username":"test-user","Password":"test-password","Email":"test@example.com"}
+```powershell
+$dbPath = "$env:LOCALAPPDATA\HomeLab\db"
+$storagePath = "$env:LOCALAPPDATA\HomeLab\files"
+[Environment]::SetEnvironmentVariable("DB_PATH", $dbPath, "User")
+[Environment]::SetEnvironmentVariable("STORAGE_PATH", $storagePath, "User")
+New-Item -ItemType Directory -Force $dbPath, $storagePath | Out-Null
 ```
 
-#### Login Endpoint `/login`
-```HTTP Request
-POST /login HTTP/1.1
-Host: localhost:8080
-Content-Type: application/json
+Close and reopen PowerShell so it loads the saved variables, then run the downloaded executable:
 
-{"Username":"test-user","Password":"test-password"}
+```powershell
+& "$HOME\Downloads\homelab-api-windows-amd64.exe"
 ```
 
-## Deployment Guide
-### Note this guide is for Linux only
+### Linux (x64)
 
-Navigate to the API module directory:
+Save the variables in your Bash profile, create the data folders, grant the downloaded executable permission to run, and start it:
 
 ```bash
-cd ~/HomeLab/api
+printf '%s\n' 'export DB_PATH="$HOME/.local/share/homelab/db"' 'export STORAGE_PATH="$HOME/.local/share/homelab/files"' >> "$HOME/.bashrc"
+source "$HOME/.bashrc"
+mkdir -p "$DB_PATH" "$STORAGE_PATH"
+chmod +x "$HOME/Downloads/homelab-api-linux-amd64"
+"$HOME/Downloads/homelab-api-linux-amd64"
 ```
 
-Then once you are in the API directory you have to compile the app for your target architecture
+For a 64-bit ARM Linux host, use `homelab-api-linux-arm64` in the last two commands.
+
+### macOS (Apple silicon)
+
+Save the variables in your Zsh profile, create the data folders, grant the downloaded executable permission to run, and start it:
 
 ```bash
-#For Raspberry Pi Or cross-compilation
-GOOS=linux GOARCH=arm64 go build -o server .
+printf '%s\n' 'export DB_PATH="$HOME/Library/Application Support/HomeLab/db"' 'export STORAGE_PATH="$HOME/Library/Application Support/HomeLab/files"' >> "$HOME/.zshrc"
+source "$HOME/.zshrc"
+mkdir -p "$DB_PATH" "$STORAGE_PATH"
+chmod +x "$HOME/Downloads/homelab-api-darwin-arm64"
+"$HOME/Downloads/homelab-api-darwin-arm64"
 ```
 
-`GOOS` means go OS, which is what OS you are compiling for, and `GOARCH` means what architecture you are compiling for.
+For an Intel Mac, use `homelab-api-darwin-amd64` in the last two commands.
 
-Next you must set your environment variable.
+Keep the server running while using the API. The first start creates the database schema in `DB_PATH`. Stop it with `Ctrl+C`; the database and uploaded files remain in their configured directories.
 
-```bash
-#For Deployment on Raspberry Pi or other devices (Permanent Environment Variable)
-nano ~/.bashrc
-```
+## Current limitations
 
-Once in ``` .bashrc ``` copy and paste this at the end of the file
-
-```bash
-export STORAGE_PATH="YOUR-SSD-PATH"
-# DB Path is where the code automatically makes the db 
-export DB_PATH="YOUR-DB-PATH"
-```
-
-Then hit ``` O^ ``` then hit ``` Enter ``` and finally to save your environment variable.
-
+- No complete file-browsing website yet.
+- The upload request limit is 500 MiB per chunk; there is no total-size limit across all chunks yet.
+- The API is an early prototype for a trusted home network.
