@@ -1,10 +1,10 @@
 # HomeLab
 
-HomeLab is a self-hosted, API first, file service for a home network. The planned user release will run as a prebuilt executable, so users can start the service without working with the source code.
+HomeLab is a self-hosted, API first, file service for a home network. The release will run as a prebuilt executable, so users can start the service without working with the source code.
 
 ## Current component: API
 
-The API is the part available today. It can:
+The API is the part available as an executable today. It can:
 
 - Register accounts and sign users in.
 - Accept authenticated, chunked file uploads.
@@ -18,7 +18,7 @@ A website for browsing and downloading stored files is planned. It is not availa
 
 ## Deployment guide
 
-The API listens on port `8080`. It needs two writable directories: `DB_PATH` for `homelab.db` and `STORAGE_PATH` for uploaded files. Keep these directories on persistent storage and back them up. Download the executable for your operating system and CPU from GitHub Releases using your browser. The commands below assume the file is in your Downloads folder. Release executables are not published yet.
+The API listens on port `8080`. It needs two writable directories: `DB_PATH` for `homelab.db` and `STORAGE_PATH` for uploaded files. Keep these directories on persistent storage and back them up. Download the executable for your operating system and CPU from GitHub Releases using your browser. The commands below assume the file is in your Downloads folders.
 
 The server listens on all network interfaces. Use it on a trusted network, and allow port `8080` through the host firewall only for devices that should reach it. Do not expose it directly to the public internet.
 
