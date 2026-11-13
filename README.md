@@ -12,9 +12,16 @@ The API is the part available as an executable today. It can:
 
 The API has authenticated upload and download endpoints. A complete file-browsing website is not available yet, so clients need to communicate with the API directly.
 
-## Planned component: Website
+## Planned features
 
-A website for browsing and downloading stored files is planned. It is not available yet.
+These features are planned or longer-term ideas. They are not available yet:
+
+- **Website:** Browse and download stored files through a web interface.
+- **Modification engine:** Let developers add their own tools to HomeLab.
+- **PiDrop:** Share files across platforms, similar to AirDrop.
+- **Media streamer:** Stream personal media from a self-hosted service.
+- **Password vault/manager:** Store and manage passwords on your own server.
+- **Ad blocker:** Block ads for devices on a home network.
 
 ## Deployment guide
 
